@@ -32,3 +32,49 @@ This project uses Python to generate the precise Excel geometry (row heights/col
 ```bash
 # Run the build script to create the Excel file
 python build_template.py
+
+2. Enable Macros
+Open the generated file: NCR_Label_Generator.xlsx.
+
+Save the file as an Excel Macro-Enabled Workbook (.xlsm).
+
+Press ALT + F11 to open the VBA Editor.
+
+Insert a new Module and paste the code from label_logic.vba.
+
+Close the VBA Editor.
+
+3. Add the Button
+Go to the Developer tab in Excel.
+
+Click Insert > Button (Form Control).
+
+Draw the button on the "Input" sheet (around cell I2).
+
+Assign the GenerateLabels macro to the button.
+
+Rename the button to "Generate Labels".
+
+📖 Usage Guide
+To Print Specific Labels
+Open the Input sheet.
+
+Fill in the columns (Part #, Lot #, Serial #, NCR #, etc.).
+
+Click Generate Labels.
+
+Go to the Labels sheet and Print (Ensure scaling is set to 100%).
+
+To Print Blank Forms
+Open the Input sheet.
+
+Clear all data from row 2 downwards (keep the headers!).
+
+Click Generate Labels.
+
+The tool will detect the empty data and generate one full sheet (10 labels) of blank forms.
+
+📝 Authors
+Jason Sparks - Initial work & Logic
+
+Version 1.0
