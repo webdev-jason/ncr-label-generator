@@ -3,8 +3,8 @@ Sub GenerateLabels()
     Dim wsLabel As Worksheet
     Dim lastRow As Long
     Dim i As Long
-    Dim labelRow As Long
-    Dim labelCol As Long
+    Dim startRow As Long
+    Dim colOffset As Long
     Dim labelCounter As Long
     Dim isBlankMode As Boolean
     Dim loopLimit As Long
@@ -22,124 +22,128 @@ Sub GenerateLabels()
     ' Clear previous contents
     wsLabel.Cells.Clear
     
-    ' Initialize variables
-    labelRow = 1
-    labelCol = 1
-    labelCounter = 1
-    
     ' --- CHECK MODE ---
     If lastRow < 2 Then
         isBlankMode = True
-        loopLimit = 10 ' Generate 1 full page (10 labels)
+        loopLimit = 10 
     Else
         isBlankMode = False
         loopLimit = lastRow
     End If
     
-    ' --- MAIN LOOP ---
-    Dim startLoop As Long
-    If isBlankMode Then startLoop = 1 Else startLoop = 2
+    ' Initialize Variables
+    startRow = 1
+    labelCounter = 1
     
-    For i = startLoop To loopLimit
+    Dim loopStart As Long
+    If isBlankMode Then loopStart = 1 Else loopStart = 2
+    
+    ' --- MAIN LOOP ---
+    For i = loopStart To loopLimit
         
-        Dim partText As String
-        Dim lotText As String
-        Dim serialText As String
-        Dim ncrText As String
-        Dim reasonText As String
-        Dim inspText As String
-        Dim commText As String
+        ' 1. Determine Data Variables
+        Dim tPart As String, tLot As String, tSerial As String
+        Dim tNCR As String, tInsp As String, tReason As String, tComm As String
         
-        ' Variable to control the horizontal "Center" point
-        ' UPDATED: Increased from 37 to 41 to move Lot/NCR further right
-        Dim centerPoint As Integer
-        centerPoint = 41
-        
-        ' Determine content based on mode
+        ' UPDATED: Removed the manual leading space " " from these strings
+        ' We will use .IndentLevel instead to handle alignment for wrapped text
         If isBlankMode Then
-            ' BLANK MODE:
-            Dim blankPartLabel As String
-            blankPartLabel = " Part #: " 
-            partText = blankPartLabel & Space(centerPoint - Len(blankPartLabel))
-            lotText = "Lot #: "
-            
-            Dim blankSerialLabel As String
-            blankSerialLabel = " Serial #: "
-            serialText = blankSerialLabel & Space(centerPoint - Len(blankSerialLabel))
-            ncrText = "NCR #: "
-            
-            inspText = " Inspected By:"
-            reasonText = " Reason for Failure:"
-            commText = " Comments:"
+            tPart = "Part #:"
+            tLot = "Lot #:"
+            tSerial = "Serial #:"
+            tNCR = "NCR #:"
+            tInsp = "Inspected By:"
+            tReason = "Reason for Failure:"
+            tComm = "Comments:"
         Else
-            ' DATA MODE:
             If wsInput.Cells(i, 1).Value = "" Then GoTo NextIteration
             
-            Dim rawPart As String, rawLot As String, rawSerial As String, rawNCR As String
-            
-            ' Added leading space " " to indent from left edge
-            rawPart = " Part #: " & wsInput.Cells(i, 1).Value
-            rawLot = "Lot #: " & wsInput.Cells(i, 2).Value
-            rawSerial = " Serial #: " & wsInput.Cells(i, 3).Value
-            rawNCR = "NCR #: " & wsInput.Cells(i, 4).Value
-            
-            ' Calculate needed padding
-            Dim padPart As Integer, padSerial As Integer
-            padPart = centerPoint - Len(rawPart)
-            If padPart < 1 Then padPart = 1
-            
-            padSerial = centerPoint - Len(rawSerial)
-            If padSerial < 1 Then padSerial = 1
-            
-            partText = rawPart & Space(padPart)
-            lotText = rawLot
-            serialText = rawSerial & Space(padSerial)
-            ncrText = rawNCR
-            
-            inspText = " Inspected By: " & wsInput.Cells(i, 6).Value
-            reasonText = " Reason for Failure: " & wsInput.Cells(i, 5).Value
-            commText = " Comments: " & wsInput.Cells(i, 7).Value
+            tPart = "Part #: " & wsInput.Cells(i, 1).Value
+            tLot = "Lot #: " & wsInput.Cells(i, 2).Value
+            tSerial = "Serial #: " & wsInput.Cells(i, 3).Value
+            tNCR = "NCR #: " & wsInput.Cells(i, 4).Value
+            tInsp = "Inspected By: " & wsInput.Cells(i, 6).Value
+            tReason = "Reason for Failure: " & wsInput.Cells(i, 5).Value
+            tComm = "Comments: " & wsInput.Cells(i, 7).Value
         End If
 
-        ' Format the Label Cell
-        With wsLabel.Cells(labelRow, labelCol)
-            ' ADDED vbNewLine at the start to push text down from the top edge
-            .Value = vbNewLine & _
-                     partText & lotText & vbNewLine & _
-                     serialText & ncrText & vbNewLine & vbNewLine & _
-                     inspText & vbNewLine & vbNewLine & _
-                     reasonText & vbNewLine & vbNewLine & _
-                     commText
-            
-            ' Apply text wrapping and alignment
-            .WrapText = True
-            .VerticalAlignment = xlTop 
+        ' 2. Determine Column Offset
+        If labelCounter Mod 2 <> 0 Then
+            colOffset = 1 ' Left Label (Col A)
+        Else
+            colOffset = 4 ' Right Label (Col D)
+        End If
+        
+        ' 3. WRITE TO GRID
+        
+        ' Row 1: Part & Lot
+        With wsLabel.Cells(startRow, colOffset)
+            .Value = tPart
+            .VerticalAlignment = xlCenter
             .HorizontalAlignment = xlLeft
-            .Font.Name = "Arial"
-            .Font.Size = 10
+        End With
+        With wsLabel.Cells(startRow, colOffset + 1)
+            .Value = tLot
+            .VerticalAlignment = xlCenter
+            .HorizontalAlignment = xlLeft
         End With
         
-        ' Logic to move to next label position
-        If labelCounter Mod 2 <> 0 Then
-            ' If Left label, move to Right label (Column C)
-            labelCol = 3
-        Else
-            ' If Right label, move down to next row and back to Left (Column A)
-            labelCol = 1
-            labelRow = labelRow + 1
+        ' Row 2: Serial & NCR
+        With wsLabel.Cells(startRow + 1, colOffset)
+            .Value = tSerial
+            .VerticalAlignment = xlCenter
+            .HorizontalAlignment = xlLeft
+        End With
+        With wsLabel.Cells(startRow + 1, colOffset + 1)
+            .Value = tNCR
+            .VerticalAlignment = xlCenter
+            .HorizontalAlignment = xlLeft
+        End With
+        
+        ' Row 3: Inspected By (Merged)
+        With wsLabel.Range(wsLabel.Cells(startRow + 2, colOffset), wsLabel.Cells(startRow + 2, colOffset + 1))
+            .Merge
+            .Value = tInsp
+            .VerticalAlignment = xlTop 
+            .HorizontalAlignment = xlLeft
+            .WrapText = True
+        End With
+        
+        ' Row 4: Reason (Merged)
+        With wsLabel.Range(wsLabel.Cells(startRow + 3, colOffset), wsLabel.Cells(startRow + 3, colOffset + 1))
+            .Merge
+            .Value = tReason
+            .VerticalAlignment = xlTop
+            .HorizontalAlignment = xlLeft
+            .WrapText = True
+        End With
+        
+        ' Row 5: Comments (Merged)
+        With wsLabel.Range(wsLabel.Cells(startRow + 4, colOffset), wsLabel.Cells(startRow + 4, colOffset + 1))
+            .Merge
+            .Value = tComm
+            .VerticalAlignment = xlTop 
+            .HorizontalAlignment = xlLeft
+            .WrapText = True
+        End With
+        
+        ' 4. Formatting (Font & INDENT)
+        With wsLabel.Range(wsLabel.Cells(startRow, colOffset), wsLabel.Cells(startRow + 4, colOffset + 1))
+            .Font.Name = "Arial"
+            .Font.Size = 10
+            .IndentLevel = 1  ' <--- THIS FIXES THE WRAPPING ALIGNMENT
+        End With
+
+        ' 5. Move Logic
+        If labelCounter Mod 2 = 0 Then
+            startRow = startRow + 5
         End If
         
         labelCounter = labelCounter + 1
-
+        
 NextIteration:
     Next i
     
     Application.ScreenUpdating = True
-    
-    If isBlankMode Then
-        MsgBox "Generated blank forms.", vbInformation
-    Else
-        MsgBox "Labels generated successfully!", vbInformation
-    End If
-    
+    MsgBox "Labels generated successfully!", vbInformation
 End Sub
