@@ -1,0 +1,10 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.env
+
+# Excel - We ignore the generated file so only the source code is tracked
+*.xlsx
+*.xlsm
+~$*.xlsx
