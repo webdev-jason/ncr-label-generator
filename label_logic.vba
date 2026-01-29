@@ -19,8 +19,7 @@ Sub GenerateLabels()
     ' Prevent screen flickering
     Application.ScreenUpdating = False
     
-    ' --- THE FIX IS HERE ---
-    ' .Clear wipes text, borders, and formatting so no "ghost" boxes remain
+    ' Clear previous contents
     wsLabel.Cells.Clear
     
     ' Initialize variables
@@ -29,7 +28,6 @@ Sub GenerateLabels()
     labelCounter = 1
     
     ' --- CHECK MODE ---
-    ' If lastRow is 1 (only headers), we are in Blank Mode
     If lastRow < 2 Then
         isBlankMode = True
         loopLimit = 10 ' Generate 1 full page (10 labels)
@@ -53,30 +51,36 @@ Sub GenerateLabels()
         Dim commText As String
         
         ' Variable to control the horizontal "Center" point
+        ' UPDATED: Increased from 37 to 41 to move Lot/NCR further right
         Dim centerPoint As Integer
-        centerPoint = 35
+        centerPoint = 41
         
         ' Determine content based on mode
         If isBlankMode Then
             ' BLANK MODE:
-            partText = "Part #: " & Space(centerPoint - Len("Part #: "))
+            Dim blankPartLabel As String
+            blankPartLabel = " Part #: " 
+            partText = blankPartLabel & Space(centerPoint - Len(blankPartLabel))
             lotText = "Lot #: "
             
-            serialText = "Serial #: " & Space(centerPoint - Len("Serial #: "))
+            Dim blankSerialLabel As String
+            blankSerialLabel = " Serial #: "
+            serialText = blankSerialLabel & Space(centerPoint - Len(blankSerialLabel))
             ncrText = "NCR #: "
             
-            inspText = "Inspected By:"
-            reasonText = "Reason for Failure:"
-            commText = "Comments:"
+            inspText = " Inspected By:"
+            reasonText = " Reason for Failure:"
+            commText = " Comments:"
         Else
             ' DATA MODE:
             If wsInput.Cells(i, 1).Value = "" Then GoTo NextIteration
             
             Dim rawPart As String, rawLot As String, rawSerial As String, rawNCR As String
             
-            rawPart = "Part #: " & wsInput.Cells(i, 1).Value
+            ' Added leading space " " to indent from left edge
+            rawPart = " Part #: " & wsInput.Cells(i, 1).Value
             rawLot = "Lot #: " & wsInput.Cells(i, 2).Value
-            rawSerial = "Serial #: " & wsInput.Cells(i, 3).Value
+            rawSerial = " Serial #: " & wsInput.Cells(i, 3).Value
             rawNCR = "NCR #: " & wsInput.Cells(i, 4).Value
             
             ' Calculate needed padding
@@ -92,14 +96,16 @@ Sub GenerateLabels()
             serialText = rawSerial & Space(padSerial)
             ncrText = rawNCR
             
-            inspText = "Inspected By: " & wsInput.Cells(i, 6).Value
-            reasonText = "Reason for Failure: " & wsInput.Cells(i, 5).Value
-            commText = "Comments: " & wsInput.Cells(i, 7).Value
+            inspText = " Inspected By: " & wsInput.Cells(i, 6).Value
+            reasonText = " Reason for Failure: " & wsInput.Cells(i, 5).Value
+            commText = " Comments: " & wsInput.Cells(i, 7).Value
         End If
 
         ' Format the Label Cell
         With wsLabel.Cells(labelRow, labelCol)
-            .Value = partText & lotText & vbNewLine & _
+            ' ADDED vbNewLine at the start to push text down from the top edge
+            .Value = vbNewLine & _
+                     partText & lotText & vbNewLine & _
                      serialText & ncrText & vbNewLine & vbNewLine & _
                      inspText & vbNewLine & vbNewLine & _
                      reasonText & vbNewLine & vbNewLine & _
@@ -111,7 +117,6 @@ Sub GenerateLabels()
             .HorizontalAlignment = xlLeft
             .Font.Name = "Arial"
             .Font.Size = 10
-            .Borders.LineStyle = xlContinuous
         End With
         
         ' Logic to move to next label position
