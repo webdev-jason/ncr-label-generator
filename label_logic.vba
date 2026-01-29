@@ -6,6 +6,8 @@ Sub GenerateLabels()
     Dim labelRow As Long
     Dim labelCol As Long
     Dim labelCounter As Long
+    Dim isBlankMode As Boolean
+    Dim loopLimit As Long
     
     ' Set worksheets
     Set wsInput = ThisWorkbook.Sheets("Input")
@@ -17,52 +19,122 @@ Sub GenerateLabels()
     ' Prevent screen flickering
     Application.ScreenUpdating = False
     
-    ' Clear previous contents on Label sheet (keep formatting)
-    wsLabel.Cells.ClearContents
+    ' --- THE FIX IS HERE ---
+    ' .Clear wipes text, borders, and formatting so no "ghost" boxes remain
+    wsLabel.Cells.Clear
     
     ' Initialize variables
     labelRow = 1
     labelCol = 1
     labelCounter = 1
     
-    ' Loop through input data starting at Row 2 (skipping headers)
-    For i = 2 To lastRow
+    ' --- CHECK MODE ---
+    ' If lastRow is 1 (only headers), we are in Blank Mode
+    If lastRow < 2 Then
+        isBlankMode = True
+        loopLimit = 10 ' Generate 1 full page (10 labels)
+    Else
+        isBlankMode = False
+        loopLimit = lastRow
+    End If
+    
+    ' --- MAIN LOOP ---
+    Dim startLoop As Long
+    If isBlankMode Then startLoop = 1 Else startLoop = 2
+    
+    For i = startLoop To loopLimit
         
-        ' Check if Part # exists, otherwise skip
-        If wsInput.Cells(i, 1).Value <> "" Then
+        Dim partText As String
+        Dim lotText As String
+        Dim serialText As String
+        Dim ncrText As String
+        Dim reasonText As String
+        Dim inspText As String
+        Dim commText As String
+        
+        ' Variable to control the horizontal "Center" point
+        Dim centerPoint As Integer
+        centerPoint = 35
+        
+        ' Determine content based on mode
+        If isBlankMode Then
+            ' BLANK MODE:
+            partText = "Part #: " & Space(centerPoint - Len("Part #: "))
+            lotText = "Lot #: "
             
-            ' Format the Label Cell
-            With wsLabel.Cells(labelRow, labelCol)
-                .Value = "NCR #: " & wsInput.Cells(i, 4).Value & "   |   Part #: " & wsInput.Cells(i, 1).Value & vbNewLine & _
-                         "Lot #: " & wsInput.Cells(i, 2).Value & "   |   Serial #: " & wsInput.Cells(i, 3).Value & vbNewLine & _
-                         "Reason: " & wsInput.Cells(i, 5).Value & vbNewLine & _
-                         "Insp By: " & wsInput.Cells(i, 6).Value & vbNewLine & _
-                         "Comments: " & wsInput.Cells(i, 7).Value
-                
-                ' Apply text wrapping and alignment
-                .WrapText = True
-                .VerticalAlignment = xlCenter
-                .HorizontalAlignment = xlLeft
-                .Font.Name = "Arial"
-                .Font.Size = 10
-            End With
+            serialText = "Serial #: " & Space(centerPoint - Len("Serial #: "))
+            ncrText = "NCR #: "
             
-            ' Logic to move to next label position
-            If labelCounter Mod 2 <> 0 Then
-                ' If Left label, move to Right label (Column C)
-                labelCol = 3
-            Else
-                ' If Right label, move down to next row and back to Left (Column A)
-                labelCol = 1
-                labelRow = labelRow + 1
-            End If
+            inspText = "Inspected By:"
+            reasonText = "Reason for Failure:"
+            commText = "Comments:"
+        Else
+            ' DATA MODE:
+            If wsInput.Cells(i, 1).Value = "" Then GoTo NextIteration
             
-            labelCounter = labelCounter + 1
+            Dim rawPart As String, rawLot As String, rawSerial As String, rawNCR As String
             
+            rawPart = "Part #: " & wsInput.Cells(i, 1).Value
+            rawLot = "Lot #: " & wsInput.Cells(i, 2).Value
+            rawSerial = "Serial #: " & wsInput.Cells(i, 3).Value
+            rawNCR = "NCR #: " & wsInput.Cells(i, 4).Value
+            
+            ' Calculate needed padding
+            Dim padPart As Integer, padSerial As Integer
+            padPart = centerPoint - Len(rawPart)
+            If padPart < 1 Then padPart = 1
+            
+            padSerial = centerPoint - Len(rawSerial)
+            If padSerial < 1 Then padSerial = 1
+            
+            partText = rawPart & Space(padPart)
+            lotText = rawLot
+            serialText = rawSerial & Space(padSerial)
+            ncrText = rawNCR
+            
+            inspText = "Inspected By: " & wsInput.Cells(i, 6).Value
+            reasonText = "Reason for Failure: " & wsInput.Cells(i, 5).Value
+            commText = "Comments: " & wsInput.Cells(i, 7).Value
         End If
+
+        ' Format the Label Cell
+        With wsLabel.Cells(labelRow, labelCol)
+            .Value = partText & lotText & vbNewLine & _
+                     serialText & ncrText & vbNewLine & vbNewLine & _
+                     inspText & vbNewLine & vbNewLine & _
+                     reasonText & vbNewLine & vbNewLine & _
+                     commText
+            
+            ' Apply text wrapping and alignment
+            .WrapText = True
+            .VerticalAlignment = xlTop 
+            .HorizontalAlignment = xlLeft
+            .Font.Name = "Arial"
+            .Font.Size = 10
+            .Borders.LineStyle = xlContinuous
+        End With
+        
+        ' Logic to move to next label position
+        If labelCounter Mod 2 <> 0 Then
+            ' If Left label, move to Right label (Column C)
+            labelCol = 3
+        Else
+            ' If Right label, move down to next row and back to Left (Column A)
+            labelCol = 1
+            labelRow = labelRow + 1
+        End If
+        
+        labelCounter = labelCounter + 1
+
+NextIteration:
     Next i
     
     Application.ScreenUpdating = True
-    MsgBox "Labels generated successfully!", vbInformation
+    
+    If isBlankMode Then
+        MsgBox "Generated blank forms.", vbInformation
+    Else
+        MsgBox "Labels generated successfully!", vbInformation
+    End If
     
 End Sub
