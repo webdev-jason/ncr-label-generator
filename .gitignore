@@ -1,10 +1,20 @@
-# Python
+# Python artifacts
 __pycache__/
-*.py[cod]
-venv/
-.env
+*.pyc
 
-# Excel - We ignore the generated file so only the source code is tracked
-*.xlsx
-*.xlsm
+# VS Code settings
+.vscode/
+
+# Excel artifacts (Generated files)
+NCR_Label_Generator.xlsx
+NCR_Label_Generator.xlsm
 ~$*.xlsx
+~$*.xlsm
+
+# Mac OS artifacts
+.DS_Store
+
+# Image artifacts (Generated maps)
+*.png
+*.jpg
+*.jpeg

@@ -36,7 +36,6 @@ def create_ncr_template(filename='NCR_Label_Generator.xlsx'):
         ws_input.write(0, col, text, header_format)
     
     # --- COLUMN WIDTHS & ALIGNMENT ---
-    
     # Cols A-E: Part, Lot, Serial, NCR, Disposition -> Width 15
     ws_input.set_column('A:E', 15, left_format)
     
@@ -49,7 +48,7 @@ def create_ncr_template(filename='NCR_Label_Generator.xlsx'):
     # Col H: Comments -> Width 55
     ws_input.set_column('H:H', 55, wrap_format)
 
-    # --- DROPDOWN LIST (DATA VALIDATION) ---
+    # --- DROPDOWN LIST ---
     ws_input.data_validation('E2:E1000', {
         'validate': 'list',
         'source': ['RTV', 'Rework', 'Use as is', 'Sort', 'Scrap'],
@@ -74,21 +73,32 @@ def create_ncr_template(filename='NCR_Label_Generator.xlsx'):
     ws_labels.set_column_pixels('D:E', 178) # Label 2
 
     # --- ROW HEIGHTS (VARIABLE DISTRIBUTION) ---
-    # Total Label Height must equal 148.2 points to match physical paper.
-    # We redistribute this height to give "Comments" more room.
-    
-    for label_i in range(10): # Loop through 10 labels
+    for label_i in range(10): 
         base = label_i * 5
-        ws_labels.set_row(base, 29.64)     # Row 1: Part # / Lot
-        ws_labels.set_row(base + 1, 29.64) # Row 2: Serial # / NCR
-        ws_labels.set_row(base + 2, 20.0)  # Row 3: Insp / Disposition (Small)
-        ws_labels.set_row(base + 3, 20.0)  # Row 4: Reason (Small)
-        ws_labels.set_row(base + 4, 48.92) # Row 5: Comments (Maximized)
+        ws_labels.set_row(base, 29.64)     # Row 1
+        ws_labels.set_row(base + 1, 29.64) # Row 2
+        ws_labels.set_row(base + 2, 20.0)  # Row 3 (Small)
+        ws_labels.set_row(base + 3, 20.0)  # Row 4 (Small)
+        ws_labels.set_row(base + 4, 48.92) # Row 5 (Large)
 
     # --- PRINT SCALING ---
     ws_labels.set_print_scale(100)
 
-    print(f"Successfully created '{filename}' with Variable Row Heights (Max Comments).")
+    # --- INSERT REFERENCE IMAGE ---
+    # UPDATED: Precision scale to 0.305
+    img_path = 'label_map_reference.png'
+    
+    if os.path.exists(img_path):
+        ws_input.insert_image('I11', img_path, {
+            'x_scale': 0.305, 
+            'y_scale': 0.305,
+            'x_offset': 0, 
+            'y_offset': 0
+        })
+        print(f"Successfully created '{filename}' with Precision Map Image (Scale 0.305).")
+    else:
+        print(f"Successfully created '{filename}' (Map image not found, skipping).")
+
     workbook.close()
 
 if __name__ == "__main__":
