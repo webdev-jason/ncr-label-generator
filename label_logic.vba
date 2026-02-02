@@ -2,12 +2,16 @@ Sub GenerateLabels()
     Dim wsInput As Worksheet
     Dim wsLabel As Worksheet
     Dim i As Long
+    Dim lastRow As Long
     Dim isBlankMode As Boolean
     
     ' Position Calculation Variables
+    Dim labelIndex As Long
+    Dim pageIndex As Long
+    Dim slotIndex As Long
+    Dim pairIndex As Long
     Dim startRow As Long
     Dim colOffset As Long
-    Dim pairIndex As Long
     
     ' Headers
     Const hPart As String = "Part #: "
@@ -25,31 +29,56 @@ Sub GenerateLabels()
     Set wsInput = ThisWorkbook.Sheets("Input")
     Set wsLabel = ThisWorkbook.Sheets("Labels")
     
-    ' Smart Empty Check
+    ' --- 1. DETERMINE RANGE ---
+    ' Find the last row with data in the Input sheet
+    lastRow = wsInput.Cells(wsInput.Rows.Count, "A").End(xlUp).Row
+    
+    ' Even if data ends early, we always scan at least to Row 11 (1 full page)
+    If lastRow < 11 Then lastRow = 11
+    
+    ' Check if empty (Blank Mode trigger)
     Dim hasData As Boolean
     hasData = False
-    
-    For i = 2 To 11
-        If Application.WorksheetFunction.CountA(wsInput.Range(wsInput.Cells(i, 1), wsInput.Cells(i, 8))) > 0 Then
-            hasData = True
-            Exit For
-        End If
-    Next i
+    ' Check A2 down to the last row
+    If Application.WorksheetFunction.CountA(wsInput.Range("A2:H" & lastRow)) > 0 Then
+        hasData = True
+    End If
     
     Application.ScreenUpdating = False
+    
+    ' Clear Labels sheet and Reset Page Breaks
     wsLabel.Cells.Clear
+    wsLabel.ResetAllPageBreaks
     
     isBlankMode = Not hasData
     
-    ' MAIN LOOP
-    For i = 2 To 11
+    ' --- MAIN LOOP ---
+    ' Loop from Input Row 2 to the End of Data
+    For i = 2 To lastRow
         vPart = "": vLot = "": vSerial = "": vNCR = ""
         vDisp = "": vInsp = "": vReason = "": vComm = ""
         
-        pairIndex = Int((i - 2) / 2)
-        startRow = (pairIndex * 5) + 1
+        ' --- A. CALCULATE MULTI-PAGE POSITION ---
+        ' 0-based index of the label (Row 2 is 0, Row 3 is 1...)
+        labelIndex = i - 2
+        
+        ' Which Page is this label on? (0 = Page 1, 1 = Page 2...)
+        pageIndex = Int(labelIndex / 10)
+        
+        ' Which Slot on that page? (0 to 9)
+        slotIndex = labelIndex Mod 10
+        
+        ' Which Row Pair on that page? (0 to 4)
+        pairIndex = Int(slotIndex / 2)
+        
+        ' Calculate the starting Excel Row for this label
+        ' Each page is 25 Excel rows tall (5 labels * 5 rows each)
+        startRow = (pageIndex * 25) + (pairIndex * 5) + 1
+        
+        ' Determine Column (Left vs Right)
         If i Mod 2 = 0 Then colOffset = 1 Else colOffset = 4
         
+        ' --- B. DATA GATHERING ---
         Dim rowIsEmpty As Boolean
         If Application.WorksheetFunction.CountA(wsInput.Range(wsInput.Cells(i, 1), wsInput.Cells(i, 8))) = 0 Then
             rowIsEmpty = True
@@ -58,14 +87,13 @@ Sub GenerateLabels()
         End If
 
         If isBlankMode Then
-            ' Blank Mode
+            ' Blank Mode: Just print headers (handled below)
         Else
             If rowIsEmpty Then GoTo NextIteration
             
             ' CHECK FOR "BLANK" KEYWORD
             If LCase(Trim(wsInput.Cells(i, 1).Value)) = "blank" Then
-                vPart = "": vLot = "": vSerial = "": vNCR = ""
-                vDisp = "": vReason = "": vInsp = "": vComm = ""
+                ' Leave variables empty
             Else
                 vPart = wsInput.Cells(i, 1).Value
                 vLot = wsInput.Cells(i, 2).Value
@@ -78,13 +106,25 @@ Sub GenerateLabels()
             End If
         End If
 
-        ' Formatting
+        ' --- C. FORMATTING (CRITICAL FOR MULTI-PAGE) ---
+        ' We must apply Row Heights dynamically because the Python script 
+        ' only formatted the first 25 rows.
+        
+        ' Apply Row Heights for this specific 5-row block
+        wsLabel.Rows(startRow).RowHeight = 29.64
+        wsLabel.Rows(startRow + 1).RowHeight = 29.64
+        wsLabel.Rows(startRow + 2).RowHeight = 20
+        wsLabel.Rows(startRow + 3).RowHeight = 20
+        wsLabel.Rows(startRow + 4).RowHeight = 48.92
+        
+        ' Apply Font and Indent
         With wsLabel.Range(wsLabel.Cells(startRow, colOffset), wsLabel.Cells(startRow + 4, colOffset + 1))
             .Font.Name = "Arial"
             .Font.Size = 10
             .IndentLevel = 1
         End With
         
+        ' Merges
         With wsLabel.Range(wsLabel.Cells(startRow + 3, colOffset), wsLabel.Cells(startRow + 3, colOffset + 1))
             .Merge: .WrapText = True
         End With
@@ -92,7 +132,7 @@ Sub GenerateLabels()
             .Merge: .WrapText = True
         End With
 
-        ' Write Headers
+        ' --- D. WRITE CONTENT ---
         WriteCell wsLabel.Cells(startRow, colOffset), hPart, vPart, xlCenter, xlLeft
         WriteCell wsLabel.Cells(startRow, colOffset + 1), hLot, vLot, xlCenter, xlLeft
         WriteCell wsLabel.Cells(startRow + 1, colOffset), hSerial, vSerial, xlCenter, xlLeft
@@ -102,19 +142,26 @@ Sub GenerateLabels()
         WriteCell wsLabel.Cells(startRow + 3, colOffset), hReason, vReason, xlCenter, xlLeft
         WriteCell wsLabel.Cells(startRow + 4, colOffset), hComm, vComm, xlTop, xlLeft
         
+        ' --- E. ADD PAGE BREAK ---
+        ' If this is the last label on a page (Slot 9 = Bottom Right), insert a break after it
+        If slotIndex = 9 Then
+            wsLabel.HPageBreaks.Add Before:=wsLabel.Rows(startRow + 5)
+        End If
+        
 NextIteration:
     Next i
     
     Application.ScreenUpdating = True
+    
     If isBlankMode Then
-        MsgBox "Generated blank forms (Page Full).", vbInformation
+        MsgBox "Generated blank forms (Data range empty).", vbInformation
     Else
         MsgBox "Labels generated successfully!", vbInformation
     End If
 End Sub
 
 ' ---------------------------------------------------------
-' NEW MACRO: Clear Input Button
+' MACRO: Clear Input Button
 ' ---------------------------------------------------------
 Sub ClearInputForm()
     ' Clears the data entry area from A2 down to H200
