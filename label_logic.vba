@@ -1,9 +1,7 @@
 Sub GenerateLabels()
     Dim wsInput As Worksheet
     Dim wsLabel As Worksheet
-    Dim lastRow As Long
     Dim i As Long
-    Dim c As Long
     Dim isBlankMode As Boolean
     
     ' Position Calculation Variables
@@ -11,13 +9,23 @@ Sub GenerateLabels()
     Dim colOffset As Long
     Dim pairIndex As Long
     
-    ' Set worksheets
+    ' Headers
+    Const hPart As String = "Part #: "
+    Const hLot As String = "Lot #: "
+    Const hSerial As String = "Serial #: "
+    Const hNCR As String = "NCR #: "
+    Const hDisp As String = "Disposition: "
+    Const hInsp As String = "Insp By: "
+    Const hReason As String = "Reason for Failure: "
+    Const hComm As String = "Comments: "
+    
+    Dim vPart As String, vLot As String, vSerial As String, vNCR As String
+    Dim vDisp As String, vInsp As String, vReason As String, vComm As String
+    
     Set wsInput = ThisWorkbook.Sheets("Input")
     Set wsLabel = ThisWorkbook.Sheets("Labels")
     
-    ' --- 1. SMART EMPTY CHECK ---
-    ' Check if the entire page (Rows 2-11) is empty.
-    ' If completely empty, we trigger "Blank Mode" to generate 10 blanks for handwriting.
+    ' Smart Empty Check
     Dim hasData As Boolean
     hasData = False
     
@@ -28,43 +36,21 @@ Sub GenerateLabels()
         End If
     Next i
     
-    ' Prevent screen flickering
     Application.ScreenUpdating = False
-    
-    ' Clear previous contents
     wsLabel.Cells.Clear
     
     isBlankMode = Not hasData
     
-    ' --- MAIN LOOP (Fixed to 10 Labels) ---
-    ' We loop from Row 2 to Row 11 (The 10 slots on the input sheet)
+    ' MAIN LOOP
     For i = 2 To 11
+        vPart = "": vLot = "": vSerial = "": vNCR = ""
+        vDisp = "": vInsp = "": vReason = "": vComm = ""
         
-        ' --- A. CALCULATE POSITION ---
-        ' 1. Determine Row Block (0 to 4)
-        '    (Row 2&3 -> Index 0)
-        '    (Row 4&5 -> Index 1)
         pairIndex = Int((i - 2) / 2)
-        
-        '    Multiply by 5 rows per label, add 1 to start at Excel Row 1
         startRow = (pairIndex * 5) + 1
+        If i Mod 2 = 0 Then colOffset = 1 Else colOffset = 4
         
-        ' 2. Determine Column (Left vs Right)
-        '    Even Rows (2, 4, 6...) -> Left (Column A/1)
-        '    Odd Rows (3, 5, 7...)  -> Right (Column D/4)
-        If i Mod 2 = 0 Then
-            colOffset = 1
-        Else
-            colOffset = 4
-        End If
-        
-        ' --- B. GATHER DATA ---
-        Dim tPart As String, tLot As String, tSerial As String
-        Dim tNCR As String, tDisp As String
-        Dim tInsp As String, tReason As String, tComm As String
         Dim rowIsEmpty As Boolean
-        
-        ' Check if THIS specific row has data
         If Application.WorksheetFunction.CountA(wsInput.Range(wsInput.Cells(i, 1), wsInput.Cells(i, 8))) = 0 Then
             rowIsEmpty = True
         Else
@@ -72,104 +58,77 @@ Sub GenerateLabels()
         End If
 
         If isBlankMode Then
-            ' MODE 1: All Empty -> Generate Fill-in-the-blank forms
-            tPart = "Part #:"
-            tLot = "Lot #:"
-            tSerial = "Serial #:"
-            tNCR = "NCR #:"
-            tDisp = "Disposition:"
-            tInsp = "Insp By:"
-            tReason = "Reason for Failure:"
-            tComm = "Comments:"
+            ' Blank Mode
         Else
-            ' MODE 2: Exact Mapping
-            If rowIsEmpty Then
-                ' If this specific row is empty, SKIP writing to the label sheet.
-                ' This leaves the label spot blank so you can re-use the sticker paper.
-                GoTo NextIteration
-            End If
+            If rowIsEmpty Then GoTo NextIteration
             
-            tPart = "Part #: " & wsInput.Cells(i, 1).Value
-            tLot = "Lot #: " & wsInput.Cells(i, 2).Value
-            tSerial = "Serial #: " & wsInput.Cells(i, 3).Value
-            tNCR = "NCR #: " & wsInput.Cells(i, 4).Value
-            tDisp = "Disposition: " & wsInput.Cells(i, 5).Value
-            tReason = "Reason for Failure: " & wsInput.Cells(i, 6).Value
-            tInsp = "Insp By: " & wsInput.Cells(i, 7).Value
-            tComm = "Comments: " & wsInput.Cells(i, 8).Value
+            ' CHECK FOR "BLANK" KEYWORD
+            If LCase(Trim(wsInput.Cells(i, 1).Value)) = "blank" Then
+                vPart = "": vLot = "": vSerial = "": vNCR = ""
+                vDisp = "": vReason = "": vInsp = "": vComm = ""
+            Else
+                vPart = wsInput.Cells(i, 1).Value
+                vLot = wsInput.Cells(i, 2).Value
+                vSerial = wsInput.Cells(i, 3).Value
+                vNCR = wsInput.Cells(i, 4).Value
+                vDisp = wsInput.Cells(i, 5).Value
+                vReason = wsInput.Cells(i, 6).Value
+                vInsp = wsInput.Cells(i, 7).Value
+                vComm = wsInput.Cells(i, 8).Value
+            End If
         End If
 
-        ' --- C. WRITE TO GRID ---
-        
-        ' Row 1: Part & Lot
-        With wsLabel.Cells(startRow, colOffset)
-            .Value = tPart
-            .VerticalAlignment = xlCenter
-            .HorizontalAlignment = xlLeft
-        End With
-        With wsLabel.Cells(startRow, colOffset + 1)
-            .Value = tLot
-            .VerticalAlignment = xlCenter
-            .HorizontalAlignment = xlLeft
-        End With
-        
-        ' Row 2: Serial & NCR
-        With wsLabel.Cells(startRow + 1, colOffset)
-            .Value = tSerial
-            .VerticalAlignment = xlCenter
-            .HorizontalAlignment = xlLeft
-        End With
-        With wsLabel.Cells(startRow + 1, colOffset + 1)
-            .Value = tNCR
-            .VerticalAlignment = xlCenter
-            .HorizontalAlignment = xlLeft
-        End With
-        
-        ' Row 3: Insp By & Disposition
-        With wsLabel.Cells(startRow + 2, colOffset)
-            .Value = tInsp
-            .VerticalAlignment = xlCenter
-            .HorizontalAlignment = xlLeft
-        End With
-        With wsLabel.Cells(startRow + 2, colOffset + 1)
-            .Value = tDisp
-            .VerticalAlignment = xlCenter
-            .HorizontalAlignment = xlLeft
-        End With
-        
-        ' Row 4: Reason (Merged, Center)
-        With wsLabel.Range(wsLabel.Cells(startRow + 3, colOffset), wsLabel.Cells(startRow + 3, colOffset + 1))
-            .Merge
-            .Value = tReason
-            .VerticalAlignment = xlCenter
-            .HorizontalAlignment = xlLeft
-            .WrapText = True
-        End With
-        
-        ' Row 5: Comments (Merged, Top)
-        With wsLabel.Range(wsLabel.Cells(startRow + 4, colOffset), wsLabel.Cells(startRow + 4, colOffset + 1))
-            .Merge
-            .Value = tComm
-            .VerticalAlignment = xlTop 
-            .HorizontalAlignment = xlLeft
-            .WrapText = True
-        End With
-        
-        ' --- D. FORMATTING ---
+        ' Formatting
         With wsLabel.Range(wsLabel.Cells(startRow, colOffset), wsLabel.Cells(startRow + 4, colOffset + 1))
             .Font.Name = "Arial"
             .Font.Size = 10
             .IndentLevel = 1
         End With
         
+        With wsLabel.Range(wsLabel.Cells(startRow + 3, colOffset), wsLabel.Cells(startRow + 3, colOffset + 1))
+            .Merge: .WrapText = True
+        End With
+        With wsLabel.Range(wsLabel.Cells(startRow + 4, colOffset), wsLabel.Cells(startRow + 4, colOffset + 1))
+            .Merge: .WrapText = True
+        End With
+
+        ' Write Headers
+        WriteCell wsLabel.Cells(startRow, colOffset), hPart, vPart, xlCenter, xlLeft
+        WriteCell wsLabel.Cells(startRow, colOffset + 1), hLot, vLot, xlCenter, xlLeft
+        WriteCell wsLabel.Cells(startRow + 1, colOffset), hSerial, vSerial, xlCenter, xlLeft
+        WriteCell wsLabel.Cells(startRow + 1, colOffset + 1), hNCR, vNCR, xlCenter, xlLeft
+        WriteCell wsLabel.Cells(startRow + 2, colOffset), hInsp, vInsp, xlCenter, xlLeft
+        WriteCell wsLabel.Cells(startRow + 2, colOffset + 1), hDisp, vDisp, xlCenter, xlLeft
+        WriteCell wsLabel.Cells(startRow + 3, colOffset), hReason, vReason, xlCenter, xlLeft
+        WriteCell wsLabel.Cells(startRow + 4, colOffset), hComm, vComm, xlTop, xlLeft
+        
 NextIteration:
     Next i
     
     Application.ScreenUpdating = True
-    
     If isBlankMode Then
         MsgBox "Generated blank forms (Page Full).", vbInformation
     Else
-        MsgBox "Labels generated successfully at specific positions!", vbInformation
+        MsgBox "Labels generated successfully!", vbInformation
     End If
+End Sub
+
+' ---------------------------------------------------------
+' NEW MACRO: Clear Input Button
+' ---------------------------------------------------------
+Sub ClearInputForm()
+    ' Clears the data entry area from A2 down to H200
+    Sheets("Input").Range("A2:H200").ClearContents
+End Sub
+
+Sub WriteCell(target As Range, header As String, val As String, vAlign As Variant, hAlign As Variant)
+    With target
+        .Value = header & val
+        .VerticalAlignment = vAlign
+        .HorizontalAlignment = hAlign
+        .Characters(Start:=1, Length:=Len(header)).Font.Bold = True
+        If Len(val) > 0 Then
+            .Characters(Start:=Len(header) + 1, Length:=Len(val)).Font.Bold = False
+        End If
+    End With
 End Sub

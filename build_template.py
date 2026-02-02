@@ -8,26 +8,30 @@ def create_ncr_template(filename='NCR_Label_Generator.xlsx'):
     # --- 1. SETUP INPUT SHEET ---
     ws_input = workbook.add_worksheet('Input')
 
-    # Define Formats
+    # --- DEFINE FORMATS ---
+    # 1. Header Format (LOCKED)
     header_format = workbook.add_format({
         'bold': True, 
         'bg_color': '#D3D3D3', 
         'border': 1,
         'align': 'center',
-        'valign': 'vcenter'
+        'valign': 'vcenter',
+        'locked': True  # Headers cannot be edited
     })
 
-    # Standard Left Align
-    left_format = workbook.add_format({
+    # 2. Input Cell Format (UNLOCKED)
+    # We explicitly unlock these so the user can type here while the rest of the sheet is protected
+    unlocked_left = workbook.add_format({
         'align': 'left',
-        'valign': 'top' 
+        'valign': 'top',
+        'locked': False 
     })
 
-    # Wrap Text + Left Align
-    wrap_format = workbook.add_format({
+    unlocked_wrap = workbook.add_format({
         'text_wrap': True,
         'align': 'left',
-        'valign': 'top'
+        'valign': 'top',
+        'locked': False
     })
 
     # Add Headers
@@ -36,17 +40,11 @@ def create_ncr_template(filename='NCR_Label_Generator.xlsx'):
         ws_input.write(0, col, text, header_format)
     
     # --- COLUMN WIDTHS & ALIGNMENT ---
-    # Cols A-E: Part, Lot, Serial, NCR, Disposition -> Width 15
-    ws_input.set_column('A:E', 15, left_format)
-    
-    # Col F: Rejection Reason -> Width 30
-    ws_input.set_column('F:F', 30, wrap_format)
-    
-    # Col G: Inspected By -> Width 20
-    ws_input.set_column('G:G', 20, left_format)
-    
-    # Col H: Comments -> Width 55
-    ws_input.set_column('H:H', 55, wrap_format)
+    # Apply the UNLOCKED formats to the data columns
+    ws_input.set_column('A:E', 15, unlocked_left)
+    ws_input.set_column('F:F', 30, unlocked_wrap)
+    ws_input.set_column('G:G', 20, unlocked_left)
+    ws_input.set_column('H:H', 55, unlocked_wrap)
 
     # --- DROPDOWN LIST ---
     ws_input.data_validation('E2:E1000', {
@@ -85,7 +83,6 @@ def create_ncr_template(filename='NCR_Label_Generator.xlsx'):
     ws_labels.set_print_scale(100)
 
     # --- INSERT REFERENCE IMAGE ---
-    # UPDATED: Precision scale to 0.305
     img_path = 'label_map_reference.png'
     
     if os.path.exists(img_path):
@@ -95,9 +92,19 @@ def create_ncr_template(filename='NCR_Label_Generator.xlsx'):
             'x_offset': 0, 
             'y_offset': 0
         })
-        print(f"Successfully created '{filename}' with Precision Map Image (Scale 0.305).")
+        print(f"Successfully created '{filename}' with Locked Map Image.")
     else:
         print(f"Successfully created '{filename}' (Map image not found, skipping).")
+
+    # --- ENABLE PROTECTION ---
+    # This prevents users from selecting/deleting the visual map or notes
+    # They can ONLY edit the cells we marked as 'locked': False
+    ws_input.protect('', {
+        'select_locked_cells': True,
+        'select_unlocked_cells': True,
+        'objects': False,    # User cannot move/delete images
+        'scenarios': False
+    })
 
     workbook.close()
 
