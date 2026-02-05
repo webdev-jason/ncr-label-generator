@@ -1,5 +1,6 @@
 ![GitHub last commit](https://img.shields.io/github/last-commit/webdev-jason/ncr-label-generator?style=flat-square)
-![GitHub top language](https://img.shields.io/github/languages/top/webdev-jason/ncr-label-generator?style=flat-square)
+![Python](https://img.shields.io/badge/python-3670A0?style=flat-square&logo=python&logoColor=ffdd54)
+![VBA](https://img.shields.io/badge/VBA-512BD4?style=flat-square&logo=microsoft-excel&logoColor=white)
 ![GitHub license](https://img.shields.io/github/license/webdev-jason/ncr-label-generator?style=flat-square)
 # NCR Label Generator
 <img src="generated_ncr_label.png" width="300" alt="NCR Label Generator Screenshot">
