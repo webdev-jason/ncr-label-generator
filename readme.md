@@ -1,4 +1,5 @@
 # NCR Label Generator
+![NCR Label Generator Screenshot](generated_ncr_label.png)
 
 A dual-purpose Excel tool designed to generate standardized NCR (Non-Conformance Report) labels. It functions as both a batch printer for existing data and a generator for blank, hand-writable forms for the shop floor.
 
