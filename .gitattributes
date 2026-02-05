@@ -1,4 +1,6 @@
-# Ensure both languages are detected and counted
-*.vba linguist-language=VBA
+# Force Python to be the "Face" of the project
 *.py linguist-language=Python
-*.xlsm linguist-language=VBA
+
+# Hide VBA from the stats bar so Python wins the "Blue Dot"
+*.vba linguist-vendored
+*.xlsm linguist-vendored
