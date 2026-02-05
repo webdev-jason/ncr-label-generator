@@ -1,3 +1,6 @@
+![GitHub last commit](https://img.shields.io/github/last-commit/webdev-jason/ncr-label-generator?style=flat-square)
+![GitHub top language](https://img.shields.io/github/languages/top/webdev-jason/ncr-label-generator?style=flat-square)
+![GitHub license](https://img.shields.io/github/license/webdev-jason/ncr-label-generator?style=flat-square)
 # NCR Label Generator
 <img src="generated_ncr_label.png" width="300" alt="NCR Label Generator Screenshot">
 
@@ -63,8 +66,8 @@ This tool is calibrated for **metric adhesive label sheets** with the following 
 3.  Click **Generate Labels**.
 4.  The tool will detect the empty data and generate one full sheet (10 labels) of blank forms.
 
-## 📝 Authors
-* **Jason Sparks** - *Initial work & Logic*
+## 👤 Author
+**Jason Sparks** - [GitHub Profile](https://github.com/webdev-jason)
 
----
-*Version 1.0*
+## 📄 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
