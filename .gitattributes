@@ -1,7 +1,4 @@
-# Force highlight Python as the primary project language
+# Ensure both languages are detected and counted
+*.vba linguist-language=VBA
 *.py linguist-language=Python
-
-# Treat VBA as documentation or 'vendored' so it doesn't dominate the stats
-*.vba linguist-vendored
-*.xlsm linguist-vendored
-*.xlsx linguist-vendored
+*.xlsm linguist-language=VBA
